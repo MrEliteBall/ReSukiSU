@@ -40,15 +40,6 @@ ifdef CONFIG_ARM64
 kernelsu-objs += compat/apatch_conflict.o
 endif
 
-ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes -Wno-missing-prototypes
-ccflags-y += $(call cc-disable-warning, int-conversion)
-ccflags-y += -Wno-declaration-after-statement -Wno-unused-function -Wno-unused-variable -Wno-missing-braces
-ccflags-y += -Wno-int-to-pointer-cast -Wno-declaration-after-statement
-
-ccflags-y += -I$(srctree)/security/selinux -I$(srctree)/security/selinux/include
-ccflags-y += -I$(srctree)/$(src) -I$(srctree)/$(src)/include
-ccflags-y += -I$(src) -I$(src)/include
-
 obj-$(CONFIG_KSU) += kernelsu.o
 
 REPO_NAME := ReSukiSU
@@ -65,7 +56,6 @@ ifeq ($(LOCAL_GIT_EXISTS),0)
 $(info -- Can't find $(REPO_NAME) git submodule!)
 $(info -- If you are using bazel to build this kernel,)
 $(info -- Please go to Kbuild and change KSU_SRC to the absolute path of the KSU kernel folder.)
-$(error You should use $(REPO_NAME) as a git submodule instead of copying code directly)
 endif
 
 ifdef KBUILD_EXTMOD
@@ -73,13 +63,13 @@ include $(KSU_SRC)/tools/ddk_compatible.mk
 endif
 
 $(shell cd $(KSU_SRC); [ -f ../.git/shallow ] && $(GIT_BIN) fetch --unshallow)
-KSU_LOCAL_VERSION := $(shell cd $(KSU_SRC); $(GIT_BIN) rev-list --count HEAD)
-KSU_VERSION := $(shell expr 30000 + $(KSU_LOCAL_VERSION) + 700)
+KSU_LOCAL_VERSION := $(shell cd $(KSU_SRC); $(GIT_BIN) rev-list --count HEAD 2>/dev/null)
+KSU_VERSION := 59788
 
-KSU_TAG_NAME    := $(shell cd $(KSU_SRC); $(GIT_BIN) describe --abbrev=0 --tags 2>/dev/null || echo "v4.1.0")
+KSU_TAG_NAME    := $(shell cd $(KSU_SRC); $(GIT_BIN) describe --abbrev=0 --tags 2>/dev/null || echo "v4.2.0-rc3")
 KSU_COMMIT_SHA  := $(shell cd $(KSU_SRC); $(GIT_BIN) rev-parse --short=8 HEAD 2>/dev/null || echo "unknown")
 ifneq ($(shell cd $(KSU_SRC); $(GIT_BIN) diff-index --quiet HEAD; echo $$?),0)
-KSU_COMMIT_SHA  := $(KSU_COMMIT_SHA)-dirty
+KSU_COMMIT_SHA  := $(KSU_COMMIT_SHA)
 endif
 KSU_BRANCH_NAME := $(shell cd $(KSU_SRC); $(GIT_BIN) branch --show-current 2>/dev/null || echo "unknown")
 
@@ -96,6 +86,23 @@ $(info -- $(REPO_NAME) version name: $(KSU_VERSION_FULL))
 
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
 ccflags-y += -DKSU_VERSION_FULL=\"$(KSU_VERSION_FULL)\"
+ccflags-y += -I$(srctree)/security/selinux -I$(srctree)/security/selinux/include -I$(srctree)/security/selinux/ss
+ccflags-y += -I$(srctree)/$(src) -I$(srctree)/$(src)/include -I$(srctree)/$(src)/uapi
+ccflags-y += -I$(srctree)/drivers/staging/sukisu -I$(srctree)/drivers/staging/sukisu/uapi
+ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes -Wno-missing-prototypes
+ccflags-y += $(call cc-disable-warning, int-conversion)
+ccflags-y += -Wno-declaration-after-statement -Wno-unused-function -Wno-unused-variable -Wno-missing-braces
+ccflags-y += -Wno-int-to-pointer-cast
+
+subdir-ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
+subdir-ccflags-y += -DKSU_VERSION_FULL=\"$(KSU_VERSION_FULL)\"
+subdir-ccflags-y += -I$(srctree)/security/selinux -I$(srctree)/security/selinux/include -I$(srctree)/security/selinux/ss
+subdir-ccflags-y += -I$(srctree)/$(src) -I$(srctree)/$(src)/include -I$(srctree)/$(src)/uapi
+subdir-ccflags-y += -I$(srctree)/drivers/staging/sukisu -I$(srctree)/drivers/staging/sukisu/uapi
+subdir-ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes -Wno-missing-prototypes
+subdir-ccflags-y += $(call cc-disable-warning, int-conversion)
+subdir-ccflags-y += -Wno-declaration-after-statement -Wno-unused-function -Wno-unused-variable -Wno-missing-braces
+subdir-ccflags-y += -Wno-int-to-pointer-cast
 
 ifdef CONFIG_KSU_MULTI_MANAGER_SUPPORT
 $(info -- Supported Unofficial Manager: MKSU, RKSU, KOWSU, SukiSU-Ultra, ReSukiSU )
